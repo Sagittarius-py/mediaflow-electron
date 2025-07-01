@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>MediaFlow</title>
+    <link rel="stylesheet" href="./assets/styles.css">
+</head>
+<body>
+    <div class="title-bar">
+    <div class="window-title">MediaFlow</div>
+    <div class="window-controls">
+        <button class="window-control minimize"></button>
+        <button class="window-control maximize"></button>
+        <button class="window-control close"></button>
+    </div>
+</div>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <button id="select-folder">📁 Wybierz folder</button>
+            </div>
+            <div class="tree-view" id="file-tree"></div>
+        </div>
+
+        <!-- Główna zawartość -->
+        <div class="main-content">
+            <div id="media-player"></div>
+            <div id="tag-manager-panel" style="display:none;"></div>
+        </div>
+        <div class="main-content-bg"></div>
+    </div>
+
+    <!-- Tag manager button -->
+    <button id="open-tag-manager" style="position:fixed;bottom:32px;right:32px;z-index:2000;padding:12px 22px;font-size:16px;border-radius:8px;background:#0078d7;color:#fff;border:none;box-shadow:0 2px 12px 0 rgba(0,0,0,0.10);cursor:pointer;">Manage Tags</button>
+
+    <script src="./renderer.js"></script>
+    <script src="./assets/script.js"></script>
+</body>
+</html>
