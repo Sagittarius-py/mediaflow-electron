@@ -182,25 +182,27 @@ document.addEventListener('DOMContentLoaded', () => {
             fileTree.innerHTML = '';
             renderTree([rootStructure], fileTree);
             document.getElementById('media-player').innerHTML = '';
-            saveLastOpenedFolder(rootStructure.path);
+            localStorage.setItem('lastOpenedFolder', rootStructure.path); // Save to localStorage
         }
     });
 
     // On load, try to auto-open last folder (only once, and only if not already rendered)
-    window.addEventListener('DOMContentLoaded', async () => {
+    async function tryAutoOpenLastFolder() {
+        const last = localStorage.getItem('lastOpenedFolder');
         if (last) {
             try {
                 const rootStructure = await window.api.readDirectory(last);
-                if (rootStructure && Array.isArray(rootStructure)) {
-                    fileTree.innerHTML = '';
-                    renderTree(rootStructure, fileTree);
-                } else if (rootStructure && rootStructure.name) {
+                if (rootStructure && rootStructure.name) {
                     fileTree.innerHTML = '';
                     renderTree([rootStructure], fileTree);
                 }
-            } catch {}
+            } catch (e) {
+                // Folder not found or error, ignore
+            }
         }
-    });
+    }
+    // Wywołaj po zainicjalizowaniu DOM
+    tryAutoOpenLastFolder();
 
     // Wyświetlanie pliku multimedialnego po kliknięciu
     fileTree.addEventListener('click', (e) => {

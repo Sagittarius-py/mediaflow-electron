@@ -1,8 +1,24 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 let mainWindow;
+
+// Helpers for last opened folder persistence
+const lastDirPath = path.join(app.getPath('userData'), 'last-folder.txt');
+function saveLastOpenedFolder(dirPath) {
+    try { fs.writeFileSync(lastDirPath, dirPath, 'utf-8'); } catch {}
+}
+function getLastOpenedFolder() {
+    try {
+        if (fs.existsSync(lastDirPath)) {
+            const p = fs.readFileSync(lastDirPath, 'utf-8').trim();
+            if (p && fs.existsSync(p) && fs.statSync(p).isDirectory()) return p;
+        }
+    } catch {}
+    return null;
+}
 
 // Funkcja do czytania struktury folderów
 const getDirectoryStructure = (dirPath) => {
@@ -55,6 +71,13 @@ mainWindow = new BrowserWindow({
 
     ipcMain.handle('read-directory', (event, dirPath) => {
         return getDirectoryStructure(dirPath);
+    });
+
+    ipcMain.handle('save-last-folder', (event, dirPath) => {
+        saveLastOpenedFolder(dirPath);
+    });
+    ipcMain.handle('get-last-folder', () => {
+        return getLastOpenedFolder();
     });
 });
 
