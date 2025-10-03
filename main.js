@@ -32,45 +32,51 @@ const getDirectoryStructure = (dirPath) => {
 };
 
 app.whenReady().then(() => {
-mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    transparent: true, // Enable transparency for custom effects
-    frame: false, // We'll create our own title bar
-    titleBarStyle: 'hidden', // Hide default title bar but keep window controls
-    titleBarOverlay: {
-        color: '#2a2a2a', // Dark overlay color for traffic lights
-        symbolColor: '#e0e0e0', // Light color for control buttons
-        height: 40 // Custom title bar height
-    },
-    visualEffectState: 'active', // Enable vibrancy effects on macOS
-    backgroundColor: '#00000000',
-    webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-    }
-});
+    mainWindow = new BrowserWindow({
+        width: 1200,
+        height: 800,
+        transparent: true, // Enable transparency for custom effects
+        frame: false, // We'll create our own title bar
+        titleBarStyle: 'hidden', // Hide default title bar but keep window controls
+        titleBarOverlay: {
+            color: '#2a2a2a', // Dark overlay color for traffic lights
+            symbolColor: '#e0e0e0', // Light color for control buttons
+            height: 40 // Custom title bar height
+        },
+        visualEffectState: 'active', // Enable vibrancy effects on macOS
+        backgroundColor: '#00000000',
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false
+        }
+    });
 
     mainWindow.loadFile('index.html');
 
     // IPC Handlers
     ipcMain.handle('select-folder', async () => {
-        const result = await dialog.showOpenDialog({
-            properties: ['openDirectory']
-        });
-        if (!result.canceled) {
-            const rootPath = result.filePaths[0];
-            return {
-                name: path.basename(rootPath),
-                path: rootPath,
-                isDirectory: true,
-                children: getDirectoryStructure(rootPath)
-            };
-        }
-        return null;
+        const result = await dialog.showOpenDialog({ properties: ['openDirectory'] });
+        if (result.canceled || result.filePaths.length === 0) return null;
+        const folderPath = result.filePaths[0];
+        return await readDirectoryRecursive(folderPath);
     });
 
-    ipcMain.handle('read-directory', (event, dirPath) => {
-        return getDirectoryStructure(dirPath);
+    ipcMain.handle('read-directory', async (event, folderPath) => {
+        return await readDirectoryRecursive(folderPath);
+    });
+
+    ipcMain.handle('open-folder', async (event, folderPath) => {
+        require('electron').shell.openPath(folderPath);
+    });
+
+    ipcMain.handle('delete-file', async (event, filePath) => {
+        try {
+            fs.unlinkSync(filePath);
+            return true;
+        } catch {
+            return false;
+        }
     });
 
     ipcMain.handle('save-last-folder', (event, dirPath) => {
@@ -96,3 +102,33 @@ ipcMain.on('maximize-window', () => {
 ipcMain.on('close-window', () => {
     mainWindow.close()
 })
+
+async function readDirectoryRecursive(folderPath) {
+    const result = {
+        name: path.basename(folderPath),
+        path: folderPath,
+        isDirectory: true,
+        children: []
+    };
+
+    try {
+        const entries = fs.readdirSync(folderPath, { withFileTypes: true });
+        for (const entry of entries) {
+            const entryPath = path.join(folderPath, entry.name);
+            if (entry.isDirectory()) {
+                const subDir = await readDirectoryRecursive(entryPath);
+                result.children.push(subDir);
+            } else {
+                result.children.push({
+                    name: entry.name,
+                    path: entryPath,
+                    isDirectory: false
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Error reading directory:', error);
+    }
+
+    return result;
+}
